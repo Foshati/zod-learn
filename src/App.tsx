@@ -1,80 +1,89 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // Define a schema with Zod
 const formSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   email: z.string().email({ message: "Invalid email address" }),
   age: z.number().min(18, { message: "Must be at least 18 years old" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 const App: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({ name: '', email: '', age: 18 });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      age: 18,
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Parse and validate form data
-    const result = formSchema.safeParse(formData);
-    if (!result.success) {
-      const validationErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          validationErrors[err.path[0]] = err.message;
-        }
-      });
-      setErrors(validationErrors);
-    } else {
-      setErrors({});
-      // Form submission logic here
-      alert('Form is valid! Submitting...');
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'age' ? parseInt(value, 10) : value,
-    }));
+  const onSubmit = (data: FormData) => {
+    alert('Form is valid! Submitting...');
+    console.log(data);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <div>
         <label>Name:</label>
-        <input
-          type="text"
+        <Controller
           name="name"
-          value={formData.name}
-          onChange={handleChange}
+          control={control}
+          render={({ field }) => <input {...field} />}
         />
-        {errors.name && <p style={{ color: 'red' }}>{errors.name}</p>}
+        {errors.name && <p style={{ color: 'red' }}>{errors.name.message}</p>}
       </div>
 
       <div>
         <label>Email:</label>
-        <input
-          type="email"
+        <Controller
           name="email"
-          value={formData.email}
-          onChange={handleChange}
+          control={control}
+          render={({ field }) => <input {...field} />}
         />
-        {errors.email && <p style={{ color: 'red' }}>{errors.email}</p>}
+        {errors.email && <p style={{ color: 'red' }}>{errors.email.message}</p>}
       </div>
 
       <div>
         <label>Age:</label>
-        <input
-          type="number"
+        <Controller
           name="age"
-          value={formData.age}
-          onChange={handleChange}
+          control={control}
+          render={({ field }) => <input type="number" {...field} />}
         />
-        {errors.age && <p style={{ color: 'red' }}>{errors.age}</p>}
+        {errors.age && <p style={{ color: 'red' }}>{errors.age.message}</p>}
+      </div>
+
+      <div>
+        <label>Password:</label>
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => <input type="password" {...field} />}
+        />
+        {errors.password && <p style={{ color: 'red' }}>{errors.password.message}</p>}
+      </div>
+
+      <div>
+        <label>Confirm Password:</label>
+        <Controller
+          name="confirmPassword"
+          control={control}
+          render={({ field }) => <input type="password" {...field} />}
+        />
+        {errors.confirmPassword && <p style={{ color: 'red' }}>{errors.confirmPassword.message}</p>}
       </div>
 
       <button type="submit">Submit</button>
